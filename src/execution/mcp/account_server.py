@@ -81,7 +81,8 @@ class AccountMCPServer:
         if not decision_id:
             return {"error": "Missing decision_id", "executed": False}
         
-        # Check if account operations are frozen
+        # Check if account operations are frozen (handle None)
+        constraints = constraints or {}
         if constraints.get("frozen"):
             return {
                 "error": "Account operations frozen by policy",

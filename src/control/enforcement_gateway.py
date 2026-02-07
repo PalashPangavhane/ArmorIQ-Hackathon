@@ -157,21 +157,29 @@ class EnforcementGateway:
     async def execute_if_allowed(
         self,
         decision: EnforcementDecision,
-        intent: Dict[str, Any]
+        intent: Dict[str, Any],
+        agent_id: str = "unknown"
     ) -> Dict[str, Any]:
         """
         Execute intent via MCP server if allowed.
         
+        CRITICAL: This is where agent intents become real actions.
+        The decision MUST be registered with the MCP client before execution.
+        
         Args:
             decision: Enforcement decision
             intent: Original intent
+            agent_id: ID of requesting agent
             
         Returns:
             Execution result
         """
         if not decision.allowed:
+            print(f"\n🚫 EXECUTION BLOCKED by Enforcement Gateway")
+            print(f"   Reason: {decision.reason}")
             return {
                 "executed": False,
+                "blocked": True,
                 "reason": decision.reason
             }
         
@@ -181,11 +189,24 @@ class EnforcementGateway:
                 "reason": "MCP client not configured"
             }
         
+        # CRITICAL: Register the approved decision with MCP client
+        # This is what allows the MCP client to accept the execution
+        self._mcp_client.register_approved_decision(
+            decision_id=decision.decision_id,
+            decision_data={
+                "allowed": decision.allowed,
+                "reason": decision.reason,
+                "constraints": decision.constraints,
+                "intent_id": decision.intent_id
+            }
+        )
+        
         # Forward to MCP server with constraints
         execution_request = {
             "decision_id": decision.decision_id,
             "intent": intent,
-            "constraints": decision.constraints
+            "constraints": decision.constraints,
+            "agent_id": agent_id
         }
         
         result = await self._mcp_client.execute(execution_request)

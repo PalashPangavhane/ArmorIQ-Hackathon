@@ -74,7 +74,7 @@ class ApprovalMCPServer:
         """
         decision_id = request.get("decision_id")
         intent = request.get("intent", {})
-        constraints = request.get("constraints", {})
+        constraints = request.get("constraints") or {}  # Handle None
         
         if not decision_id:
             return {"error": "Missing decision_id", "executed": False}

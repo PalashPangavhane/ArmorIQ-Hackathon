@@ -62,8 +62,8 @@ class DocumentProcessor:
     
     def __init__(
         self, 
-        chunk_size: int = 512, 
-        chunk_overlap: int = 50,
+        chunk_size: int = 256,  # Reduced for local embedding models
+        chunk_overlap: int = 30,
         supported_extensions: Optional[List[str]] = None
     ):
         self.chunk_size = chunk_size

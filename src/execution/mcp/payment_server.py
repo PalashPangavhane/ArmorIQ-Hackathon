@@ -82,7 +82,8 @@ class PaymentMCPServer:
         if not decision_id:
             return {"error": "Missing decision_id", "executed": False}
         
-        # Check constraints
+        # Check constraints (handle None)
+        constraints = constraints or {}
         if constraints.get("frozen"):
             return {
                 "error": "Execution frozen by risk policy",

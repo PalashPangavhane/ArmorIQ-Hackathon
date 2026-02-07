@@ -230,30 +230,39 @@ class VectorStore:
         """
         self._ensure_initialized()
         
-        # Build query parameters
-        query_params = {
-            "query_embeddings": [query_embedding],
-            "n_results": top_k,
-            "include": ["documents", "metadatas", "distances"]
-        }
-        
-        if filters:
-            query_params["where"] = filters
+        # Build query parameters based on backend
+        if self._use_simple:
+            # SimpleVectorStore interface
+            query_params = {
+                "query_embeddings": [query_embedding],
+                "n_results": top_k,
+            }
+            if filters:
+                query_params["where"] = filters
+        else:
+            # ChromaDB interface
+            query_params = {
+                "query_embeddings": [query_embedding],
+                "n_results": top_k,
+                "include": ["documents", "metadatas", "distances"]
+            }
+            if filters:
+                query_params["where"] = filters
         
         # Execute query
         results = self._collection.query(**query_params)
         
         # Format results
         documents = []
-        if results and results['ids'] and results['ids'][0]:
+        if results and results.get('ids') and results['ids'][0]:
             for i, doc_id in enumerate(results['ids'][0]):
                 doc = {
                     "id": doc_id,
-                    "content": results['documents'][0][i] if results['documents'] else "",
-                    "metadata": results['metadatas'][0][i] if results['metadatas'] else {}
+                    "content": results['documents'][0][i] if results.get('documents') else "",
+                    "metadata": results['metadatas'][0][i] if results.get('metadatas') else {}
                 }
                 
-                if include_distances and results['distances']:
+                if include_distances and results.get('distances'):
                     # Convert distance to similarity score (cosine)
                     distance = results['distances'][0][i]
                     doc["similarity_score"] = 1 - distance  # Cosine distance to similarity

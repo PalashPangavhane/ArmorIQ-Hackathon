@@ -1,20 +1,31 @@
-# Policy Configuration
-# Defines the rules for payment approval and risk management
+# ArmorIQ Policy Configuration
+# =============================
+# User-defined rules that the system enforces consistently.
+#
+# KEY HACKATHON REQUIREMENT:
+# "Users do not approve every action interactively. Instead, users define 
+# rules that specify what agents are allowed to do."
+#
+# This file demonstrates ENTERPRISE-GRADE policies that real companies use.
 
+# ===========================================
+# AMOUNT-BASED POLICIES
+# ===========================================
 policies:
-  # Basic approval policies
+  # Auto-approve low-value payments
   - policy_id: pol_basic_approval
     name: Basic Approval Limit
-    description: Automatically approve low-value payments
+    description: Automatically approve payments under $1000
     conditions:
       max_amount: 1000
       intent_type: approve_payment
     effect: allow
     priority: 1
 
+  # Standard approval with logging
   - policy_id: pol_standard_approval
     name: Standard Approval
-    description: Standard approval for medium-value payments
+    description: Standard approval for medium-value payments ($1000-$10000)
     conditions:
       min_amount: 1000
       max_amount: 10000
@@ -24,9 +35,10 @@ policies:
       enhanced_logging: true
     priority: 2
 
+  # Dual approval for high amounts
   - policy_id: pol_dual_approval
     name: Dual Approval Required
-    description: Require dual approval for high-value payments
+    description: Require dual approval for payments over $10000
     conditions:
       min_amount: 10000
       max_amount: 50000
@@ -34,11 +46,13 @@ policies:
     effect: require_constraint
     constraints:
       dual_approval: true
+      second_approver_role: manager
     priority: 3
 
+  # Executive approval for very high amounts
   - policy_id: pol_executive_approval
     name: Executive Approval Required
-    description: Require executive approval for very high-value payments
+    description: Require executive approval for payments over $50000
     conditions:
       min_amount: 50000
       intent_type: approve_payment
@@ -47,28 +61,76 @@ policies:
       escalate_to: ceo_agent
     priority: 4
 
-  # Fraud prevention policies
-  - policy_id: pol_suspicious_block
-    name: Block Suspicious Transactions
-    description: Block transactions flagged as suspicious
-    conditions:
-      intent_type: flag_suspicious
-      severity: high
-    effect: deny
-    priority: 5
+# ===========================================
+# VENDOR POLICIES
+# ===========================================
+vendor_policies:
+  - policy_id: vendor_main
+    name: Vendor Allowlist/Blocklist
+    allowed_vendors:
+      - Acme Corp
+      - TechSupplies Inc
+      - Office Depot
+      - AWS
+      - Google Cloud
+      - Microsoft
+      - Dell
+      - HP
+      - Staples
+    blocked_vendors:
+      - Suspicious Vendor
+      - Blocked Corp
+      - Fraud Inc
+      - Unknown LLC
+      - Scam Services
+    require_approval_for_new: true
 
-  - policy_id: pol_new_vendor_review
-    name: New Vendor Review
-    description: Additional review for new vendor transactions
-    conditions:
-      vendor_status: new
-    effect: require_constraint
-    constraints:
-      vendor_verification: true
-      manager_notification: true
-    priority: 3
+# ===========================================
+# CATEGORY POLICIES
+# ===========================================
+category_policies:
+  - policy_id: cat_main
+    name: Allowed Categories
+    allowed_categories:
+      - office_supplies
+      - travel
+      - software
+      - equipment
+      - services
+      - consulting
+      - training
+      - infrastructure
+    blocked_categories:
+      - gambling
+      - personal
+      - entertainment
+      - alcohol
+      - tobacco
 
-# Risk-based policy modifiers
+# ===========================================
+# TIME WINDOW POLICIES
+# ===========================================
+time_window_policies:
+  - policy_id: time_business
+    name: Business Hours Only
+    allowed_days: [0, 1, 2, 3, 4]  # Monday to Friday
+    start_hour: 9
+    end_hour: 18
+
+# ===========================================
+# SPEND CAP POLICIES
+# ===========================================
+spend_cap_policies:
+  - policy_id: cap_main
+    name: Spend Caps
+    max_daily: 25000
+    max_weekly: 100000
+    max_monthly: 500000
+    max_per_transaction: 50000
+
+# ===========================================
+# RISK-BASED POLICY MODIFIERS
+# ===========================================
 risk_modifiers:
   high_risk:
     additional_constraints:
@@ -84,7 +146,9 @@ risk_modifiers:
   low_risk:
     additional_constraints: {}
 
-# Approval hierarchy
+# ===========================================
+# APPROVAL HIERARCHY
+# ===========================================
 approval_hierarchy:
   - level: 1
     role: finance_agent
@@ -101,3 +165,391 @@ approval_hierarchy:
   - level: 4
     role: human_ceo
     max_amount: unlimited
+
+# ===========================================
+# DELEGATION LIMITS
+# ===========================================
+delegation_limits:
+  - delegate_role: assistant
+    max_amount: 500
+    allowed_categories:
+      - office_supplies
+    allowed_vendors:
+      - Office Depot
+      - Staples
+    time_limit_hours: 24
+    max_transactions: 5
+
+  - delegate_role: team_lead
+    max_amount: 5000
+    allowed_categories:
+      - office_supplies
+      - software
+      - equipment
+    time_limit_hours: 168  # 1 week
+    max_transactions: 20
+
+
+# ==============================================================================
+# ==============================================================================
+# ADVANCED ENTERPRISE POLICIES - Company-Specific Rules
+# ==============================================================================
+# ==============================================================================
+
+# ===========================================
+# BUDGET POLICIES - Department/Project Budgets
+# ===========================================
+budget_policies:
+  - policy_id: budget_engineering
+    name: Engineering Department Budget
+    department: engineering
+    fiscal_year_budget: 2500000
+    quarterly_budget: 625000
+    remaining_budget_threshold: 0.10  # Alert when 10% remains
+    requires_budget_check: true
+    
+  - policy_id: budget_marketing
+    name: Marketing Department Budget
+    department: marketing
+    fiscal_year_budget: 1500000
+    quarterly_budget: 375000
+    remaining_budget_threshold: 0.15
+    requires_budget_check: true
+    
+  - policy_id: budget_operations
+    name: Operations Department Budget
+    department: operations
+    fiscal_year_budget: 3000000
+    quarterly_budget: 750000
+    remaining_budget_threshold: 0.10
+    requires_budget_check: true
+
+# ===========================================
+# PROJECT/COST CENTER POLICIES
+# ===========================================
+project_policies:
+  - policy_id: proj_validation
+    name: Project Code Validation
+    require_valid_project_code: true
+    require_cost_center: true
+    allowed_project_prefixes:
+      - "PRJ-"
+      - "CAPEX-"
+      - "OPEX-"
+    blocked_projects:
+      - "PRJ-CLOSED-*"
+      - "PRJ-FROZEN-*"
+    budget_check_required: true
+
+# ===========================================
+# SEGREGATION OF DUTIES (SOD) POLICIES
+# ===========================================
+segregation_of_duties:
+  - policy_id: sod_requestor_approver
+    name: Requestor Cannot Self-Approve
+    description: The person who requests cannot also approve
+    rule: requestor_not_approver
+    applies_to: all_transactions
+    exception_threshold: 100  # Allow self-approve only under $100
+    
+  - policy_id: sod_vendor_management
+    name: Vendor Onboarding Separation
+    description: Must have different people for vendor creation and payment
+    rule: vendor_creator_not_payer
+    applies_to: new_vendor_payments
+    cooling_period_days: 7  # Wait 7 days between vendor creation and first payment
+    
+  - policy_id: sod_three_way_match
+    name: Three-Way Match Required
+    description: PO, Receipt, and Invoice must match
+    rule: three_way_match
+    applies_to: purchase_payments
+    tolerance_percentage: 5  # Allow 5% variance
+
+# ===========================================
+# RELATED PARTY TRANSACTION POLICIES
+# ===========================================
+related_party_policies:
+  - policy_id: rpt_detection
+    name: Related Party Transaction Detection
+    description: Flag transactions to related parties
+    related_party_types:
+      - subsidiary
+      - affiliate
+      - board_member_company
+      - executive_family_business
+    detection_rules:
+      - check_vendor_ownership
+      - check_employee_relationships
+      - check_beneficial_owners
+    action: require_board_approval
+    threshold: 10000  # Flag all related party above $10k
+    requires_disclosure: true
+    
+  - policy_id: rpt_conflict_check
+    name: Conflict of Interest Check
+    description: Check for conflicts before approval
+    check_employee_investments: true
+    check_personal_relationships: true
+    blackout_period_days: 30  # Employee can't approve vendor they recently worked for
+
+# ===========================================
+# DUPLICATE DETECTION POLICIES
+# ===========================================
+duplicate_detection:
+  - policy_id: dup_same_amount
+    name: Duplicate Amount Detection
+    description: Detect same amount to same vendor
+    time_window_hours: 24
+    same_amount_tolerance: 0.01  # Must be exact match
+    same_vendor: true
+    action: require_confirmation
+    
+  - policy_id: dup_invoice
+    name: Duplicate Invoice Detection
+    description: Detect duplicate invoice numbers
+    check_invoice_number: true
+    check_partial_match: true
+    similarity_threshold: 0.90
+    action: block_pending_review
+    
+  - policy_id: dup_split_payment
+    name: Split Payment Detection
+    description: Detect attempts to split payments to avoid limits
+    detection_window_hours: 48
+    same_vendor: true
+    combined_amount_threshold: 10000  # If splits sum to this, flag it
+    minimum_transactions: 2
+    action: escalate_and_aggregate
+
+# ===========================================
+# CONTRACT COMPLIANCE POLICIES
+# ===========================================
+contract_policies:
+  - policy_id: contract_required
+    name: Contract Required for Services
+    description: Require valid contract for service payments
+    applies_to_categories:
+      - services
+      - consulting
+      - professional_fees
+    threshold: 5000
+    contract_requirements:
+      - valid_contract_on_file
+      - contract_not_expired
+      - amount_within_contract_value
+      - vendor_matches_contract
+    action: block_if_no_contract
+    
+  - policy_id: contract_renewal_check
+    name: Contract Expiration Check
+    description: Alert before contract expires
+    warning_days_before_expiry: 30
+    block_days_after_expiry: 0
+    renewal_approval_required: true
+
+# ===========================================
+# GEOGRAPHIC/JURISDICTION POLICIES
+# ===========================================
+geographic_policies:
+  - policy_id: geo_high_risk_countries
+    name: High-Risk Country Restrictions
+    description: Additional controls for high-risk jurisdictions
+    high_risk_countries:
+      - Country_A
+      - Country_B
+      - Country_C
+    action: require_compliance_review
+    documentation_required:
+      - business_justification
+      - ofac_check_complete
+      - sanctions_screening
+    max_amount_without_approval: 1000
+    
+  - policy_id: geo_sanctions_check
+    name: Sanctions Screening
+    description: Screen all transactions against sanctions lists
+    sanction_lists:
+      - OFAC_SDN
+      - EU_Sanctions
+      - UN_Sanctions
+    action: block_if_match
+    requires_manual_clearance: true
+
+# ===========================================
+# VELOCITY & PATTERN POLICIES
+# ===========================================
+velocity_policies:
+  - policy_id: vel_transaction_frequency
+    name: Transaction Frequency Limits
+    description: Limit number of transactions per time period
+    limits:
+      per_hour: 10
+      per_day: 50
+      per_week: 200
+    applies_per: agent
+    action_on_exceed: throttle_and_alert
+    
+  - policy_id: vel_cumulative_amount
+    name: Cumulative Amount Velocity
+    description: Track cumulative spending velocity
+    thresholds:
+      per_hour: 10000
+      per_day: 50000
+    deviation_alert_percentage: 200  # Alert if 200% of normal
+    action: freeze_for_review
+    
+  - policy_id: vel_pattern_break
+    name: Pattern Break Detection
+    description: Detect unusual spending patterns
+    detection_methods:
+      - historical_average_deviation
+      - peer_group_comparison
+      - time_of_day_anomaly
+      - vendor_frequency_change
+    sensitivity: medium  # low, medium, high
+    action: flag_for_review
+
+# ===========================================
+# EMPLOYEE-SPECIFIC POLICIES
+# ===========================================
+employee_policies:
+  - policy_id: emp_new_hire
+    name: New Hire Restrictions
+    description: Additional restrictions for new employees
+    new_hire_period_days: 90
+    restrictions:
+      max_single_transaction: 500
+      max_daily_total: 1000
+      allowed_categories:
+        - office_supplies
+        - travel
+      requires_manager_approval: true
+    
+  - policy_id: emp_departing
+    name: Departing Employee Controls
+    description: Enhanced controls for employees in notice period
+    notice_period_detection: true
+    restrictions:
+      max_single_transaction: 100
+      requires_dual_approval: true
+      block_new_vendor_creation: true
+      enhanced_audit: true
+    
+  - policy_id: emp_leave_status
+    name: Leave Status Check
+    description: Block transactions from employees on leave
+    check_leave_status: true
+    action: block_if_on_leave
+    exception_for_emergency: true
+    emergency_threshold: 500
+
+# ===========================================
+# APPROVAL WORKFLOW POLICIES
+# ===========================================
+approval_workflow:
+  - policy_id: wf_sequential
+    name: Sequential Approval Chain
+    description: Must be approved in order
+    chain_type: sequential
+    levels:
+      - level: 1
+        role: requestor_manager
+        max_delay_hours: 24
+      - level: 2
+        role: finance_reviewer
+        max_delay_hours: 24
+      - level: 3
+        role: final_approver
+        max_delay_hours: 48
+    escalation_on_timeout: true
+    
+  - policy_id: wf_parallel
+    name: Parallel Approval for Large Amounts
+    description: Multiple approvers must agree simultaneously
+    chain_type: parallel
+    applies_when:
+      min_amount: 25000
+    required_approvers:
+      - finance_head
+      - legal_review
+      - department_vp
+    minimum_approvals: 2
+    unanimous_required: false
+    
+  - policy_id: wf_conditional
+    name: Conditional Approval Routing
+    description: Route based on transaction attributes
+    conditions:
+      - if_category: consulting
+        route_to: legal_review
+      - if_amount_above: 10000
+        route_to: finance_head
+      - if_vendor_new: true
+        route_to: vendor_management
+      - if_international: true
+        route_to: compliance_team
+
+# ===========================================
+# AUDIT & COMPLIANCE POLICIES
+# ===========================================
+audit_policies:
+  - policy_id: audit_complete_trail
+    name: Complete Audit Trail
+    description: Maintain complete audit trail
+    capture_fields:
+      - requestor_id
+      - approver_chain
+      - timestamps
+      - ip_addresses
+      - device_info
+      - browser_fingerprint
+      - geo_location
+    retention_days: 2555  # 7 years
+    
+  - policy_id: audit_random_review
+    name: Random Transaction Sampling
+    description: Randomly select transactions for detailed review
+    sampling_rate: 0.05  # 5% of transactions
+    criteria_boost:
+      round_amounts: 0.10  # Increase to 10% for round amounts
+      new_vendors: 0.15
+      high_amounts: 0.20
+    review_sla_days: 3
+    
+  - policy_id: audit_quarterly_attestation
+    name: Quarterly Access Attestation
+    description: Require quarterly review of agent permissions
+    attestation_frequency_days: 90
+    scope:
+      - agent_permissions
+      - approval_limits
+      - delegation_grants
+    action_on_miss: reduce_to_minimum_access
+
+# ===========================================
+# EXCEPTION HANDLING POLICIES
+# ===========================================
+exception_policies:
+  - policy_id: exc_emergency_override
+    name: Emergency Override Process
+    description: Process for emergency exceptions
+    requires:
+      - dual_approval_from_executives
+      - business_justification
+      - time_limited_approval
+    max_override_amount: 100000
+    override_duration_hours: 24
+    post_action_review: required
+    
+  - policy_id: exc_pre_approved
+    name: Pre-Approved Recurring Payments
+    description: Pre-approved recurring vendor payments
+    allowed_recurring_vendors:
+      - AWS
+      - Google Cloud
+      - Microsoft
+      - Salesforce
+    max_variance_from_average: 0.20  # 20% variance allowed
+    review_frequency_months: 6
+    requires_initial_approval: true

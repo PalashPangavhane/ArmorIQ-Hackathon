@@ -41,9 +41,9 @@ class RAGPipeline:
         self,
         collection_name: str = "financial_docs",
         persist_directory: str = "./data/embeddings/chroma",
-        chunk_size: int = 512,
-        chunk_overlap: int = 50,
-        embedding_model: str = "gemini-embedding-001"
+        chunk_size: int = 256,  # Reduced for local embedding models
+        chunk_overlap: int = 30,
+        embedding_model: str = "nomic-embed-text"  # Local Ollama embedding model
     ):
         self.collection_name = collection_name
         self.persist_directory = persist_directory

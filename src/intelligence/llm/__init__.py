@@ -1,5 +1,27 @@
-# LLM Service
-# Provides language model capabilities using Google Gemini
-from .gemini_service import GeminiLLMService, get_llm_service
+"""
+LLM Intelligence Module
 
-__all__ = ["GeminiLLMService", "get_llm_service"]
+Provides local LLM-powered expense validation using Qwen3.
+"""
+
+from .local_llm_client import LocalLLMClient, LLMResponse, validate_cab_expense
+from .expense_validator import (
+    SmartExpenseValidator,
+    ExpenseClaim,
+    ExpenseType,
+    ValidationResult,
+    ValidationDecision,
+    create_expense_validator
+)
+
+__all__ = [
+    "LocalLLMClient",
+    "LLMResponse",
+    "validate_cab_expense",
+    "SmartExpenseValidator",
+    "ExpenseClaim", 
+    "ExpenseType",
+    "ValidationResult",
+    "ValidationDecision",
+    "create_expense_validator"
+]
