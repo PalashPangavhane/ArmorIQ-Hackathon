@@ -11,11 +11,18 @@ from pydantic import Field
 
 class RagSettings(BaseSettings):
     """RAG system configuration."""
-    embedding_model: str = "text-embedding-ada-002"
+    embedding_model: str = "models/embedding-001"
     chunk_size: int = 512
     chunk_overlap: int = 50
     vector_db_url: str = "localhost:6333"
     collection_name: str = "financial_docs"
+
+
+class GeminiSettings(BaseSettings):
+    """Google Gemini configuration."""
+    api_key: str = ""
+    model_name: str = "gemini-1.5-flash"
+    embedding_model: str = "models/embedding-001"
 
 
 class GnnSettings(BaseSettings):
@@ -40,11 +47,13 @@ class Settings(BaseSettings):
     debug: bool = False
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+    google_api_key: str = ""
     
     # Component settings
     rag: RagSettings = RagSettings()
     gnn: GnnSettings = GnnSettings()
     policy: PolicySettings = PolicySettings()
+    gemini: GeminiSettings = GeminiSettings()
     
     class Config:
         env_file = ".env"
