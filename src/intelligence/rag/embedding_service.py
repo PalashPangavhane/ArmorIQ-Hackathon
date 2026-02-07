@@ -6,7 +6,13 @@ to enable semantic search and retrieval using Google Gemini.
 """
 
 import os
+from pathlib import Path
 from typing import List, Optional
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent.parent.parent / ".env")
+
 from google import genai
 from google.genai import types
 
@@ -14,7 +20,7 @@ from google.genai import types
 class EmbeddingService:
     """Generates embeddings for text chunks using Google Gemini."""
     
-    def __init__(self, model_name: str = "gemini-embedding-exp-03-07"):
+    def __init__(self, model_name: str = "gemini-embedding-001"):
         self.model_name = model_name
         self._client = None
         self._initialized = False
