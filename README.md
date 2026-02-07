@@ -2,167 +2,131 @@
 
 ## Overview
 
-This project implements a secure agentic personal assistant system for managing company payments, reimbursements, and financial approvals. The system is designed around strong safety guarantees by separating AI reasoning from real-world execution.
+This project implements a secure, autonomous payment and financial approval system built around **agentic reasoning with strict execution guarantees**.
 
-AI agents are allowed to freely reason, analyze financial data, and propose actions. However, all real-world effects such as approving payments, transferring funds, or modifying accounts are strictly enforced through policy-controlled execution servers.
+The system is designed for high-risk domains such as company payments, reimbursements, and expense approvals, where AI autonomy must be balanced with security, governance, and user control.
 
-A Retrieval-Augmented Generation (RAG) server ingests financial reports and transactional data to ground agent decisions in real organizational context.
+AI agents are allowed to freely reason, analyze financial data, and propose actions. However, **no agent is ever allowed to directly execute real-world actions**. All payments, approvals, and account updates are enforced through policy-controlled execution servers.
 
-This architecture ensures autonomy without loss of control, bounded delegation, and full traceability of actions.
+To support informed and safe decision-making, the system combines:
+
+- A **RAG (Retrieval-Augmented Generation) pipeline** for grounding agent reasoning in company financial data
+- A **GNN-based fraud and risk detection system** used as a fallback mechanism that constrains or freezes execution under uncertainty
+- A **policy and intent enforcement layer** that guarantees bounded delegation and least-privilege execution
+- **MCP servers** as the only gateway to real-world effects
+
+This architecture enables autonomy **without loss of control**, supports graceful degradation under risk, and provides full traceability from intent to execution.
 
 ---
 
 ## Core Objectives
 
-- Automate financial workflows securely  
-- Prevent unauthorized or excessive payments  
-- Enforce approval hierarchies and delegation boundaries  
-- Use company financial data for informed AI reasoning  
-- Demonstrate strong intent and policy enforcement  
+- Safely automate financial workflows
+- Prevent unauthorized, excessive, or anomalous payments
+- Enforce approval hierarchies and bounded delegation
+- Use internal financial data for grounded reasoning
+- Degrade autonomy under risk instead of escalating trust
+- Provide auditability and execution guarantees by design
 
 ---
 
 ## System Architecture
 
-The system is composed of four main layers:
+The system is structured into four logical layers:
 
-1. Knowledge Layer (RAG Server)  
-2. Reasoning Layer (AI Agents)  
-3. Control Layer (Intent & Policy Enforcement)  
-4. Execution Layer (MCP Servers)  
+1. **Intelligence Layer** (RAG + GNN, read-only)
+2. **Reasoning Layer** (AI agents)
+3. **Control Layer** (Intent & Policy Enforcement)
+4. **Execution Layer** (MCP Servers)
 
-Financial documents are ingested into the RAG server where they are chunked, embedded, and stored in a vector database. AI agents retrieve relevant information from this knowledge base to make informed decisions.
+The Intelligence Layer may run on a single server for efficiency but is logically isolated into two services:
+- RAG for contextual knowledge
+- GNN for fraud and risk assessment
 
-Agents generate structured intent proposals representing desired actions such as approving a reimbursement or issuing a payment. These intents are passed to the policy engine which evaluates them against user-defined rules, identity constraints, delegation scope, and security conditions.
-
-Only intents that satisfy all constraints are forwarded to MCP servers which execute or simulate real-world actions. All operations are logged for auditing.
-
----
-
-## High-Level Flow
-
-1. Financial reports and expense logs are uploaded to the RAG server  
-2. Documents are processed into embeddings and indexed  
-3. An employee submits a reimbursement request  
-4. Finance Agent queries RAG for relevant budget and historical context  
-5. Finance Agent proposes an approval intent  
-6. Policy engine evaluates the intent  
-7. If within limits, it is approved or escalated  
-8. MCP server executes the transaction  
-9. Action is logged for traceability  
+Neither component has execution authority.
 
 ---
 
-## AI Agent Layer
+## High-Level End-to-End Flow
 
-The agent layer consists of multiple specialized agents responsible only for reasoning and coordination.
-
-Finance Agent analyzes reimbursement requests, spending patterns, and budget limits.
-
-Fraud Detection Agent monitors unusual behavior such as abnormal amounts, unknown vendors, or timing anomalies.
-
-CEO Approval Agent holds delegated authority for higher-value approvals.
-
-Agents can query the RAG server and collaborate but cannot directly execute sensitive actions.
-
----
-
-## RAG Knowledge Server
-
-The RAG server ingests structured and unstructured financial data including PDFs, spreadsheets, CSV logs, and text documents.
-
-Processing steps include:
-
-- Chunking documents into semantic segments  
-- Generating embeddings for each chunk  
-- Storing embeddings in a vector database  
-- Retrieving relevant context during agent queries  
-
-This allows agents to make decisions based on:
-
-- Department budgets  
-- Historical reimbursements  
-- Vendor legitimacy  
-- Spending trends  
+1. Financial documents, expense logs, and transaction data are ingested
+2. RAG processes documents into embeddings and indexes them
+3. Transaction graphs are updated for GNN-based risk analysis
+4. An employee submits a reimbursement or payment request
+5. Finance Agent queries RAG for budget, history, and vendor context
+6. Finance Agent proposes a structured intent
+7. Static policy rules are evaluated
+8. GNN produces a fraud/risk signal
+9. Risk-based constraints are applied to policy
+10. If allowed, the MCP server executes the action
+11. All decisions and actions are logged for audit
 
 ---
 
-## Policy and Intent Enforcement
+## AI Agent Layer (Reasoning Only)
 
-Every proposed action is represented as a structured intent.
+Agents are responsible for **analysis, planning, and coordination**, never execution.
 
-Policies define:
+### Example Agents
 
-- Maximum transaction amounts  
-- Auto-approval thresholds  
-- Escalation ranges  
-- Vendor allowlists  
-- Delegation authority  
-- Fraud response behavior  
+**Finance Agent**
+- Reviews reimbursement requests
+- Analyzes budget availability and spending trends
+- Proposes approval or escalation intents
 
-Before execution:
+**Fraud Monitoring Agent**
+- Consumes risk signals
+- Flags anomalies and suspicious patterns
+- Never approves or blocks directly
 
-- Agent identity is verified  
-- Intent structure is validated  
-- Context is checked  
-- Policies are enforced  
+**CEO Approval Agent**
+- Holds delegated authority for higher-value transactions
+- Operates within strictly defined limits
 
-Any violation results in the action being blocked.
-
----
-
-## MCP Execution Servers
-
-MCP servers serve as the only gateway for real-world actions.
-
-They handle:
-
-- Payment execution  
-- Reimbursement processing  
-- Account updates  
-
-They receive only approved intents and perform the final execution step.
-
-All actions are logged with timestamps and metadata.
+Agents may collaborate and query intelligence services, but cannot mutate system state.
 
 ---
 
-## Delegation Model
+## Intelligence Layer: RAG + GNN (Read-Only)
 
-The system supports bounded delegation.
+### RAG Knowledge System
 
-Typical flow:
+The RAG system ingests structured and unstructured financial data such as:
 
-An employee submits a reimbursement request.
+- Financial reports (PDFs)
+- Expense ledgers (CSV)
+- Vendor records
+- Budget documents
+- Audit summaries
 
-If the amount is below a low threshold, the Finance Agent can auto-approve.
+Processing pipeline:
+- Document chunking
+- Embedding generation
+- Vector database storage
+- Contextual retrieval at query time
 
-If the amount is moderate, it is routed to the CEO Approval Agent.
-
-If the amount exceeds limits or violates policy, it is blocked.
-
-At no point can an agent exceed its granted authority.
-
----
-
-## Example Policy Logic
-
-- Auto-approve reimbursements under ₹5,000  
-- Require CEO approval between ₹5,000 and ₹50,000  
-- Block transactions above ₹50,000  
-- Allow payments only to approved vendors  
-- Freeze execution when fraud risk is flagged  
+Used to answer questions like:
+- Remaining department budget
+- Historical reimbursement averages
+- Vendor legitimacy
+- Spending patterns
 
 ---
 
-## Project Directory Structure
+### GNN-Based Fraud & Risk Detection (Fallback Mechanism)
 
-├── agents/
-├── rag/
-├── mcp_servers/
-├── policies/
-├── demo/
-├── data/
-├── logs/
-├── README.md
-└── requirements.txt
+All payment and reimbursement activity is modeled as a graph:
+
+- Nodes: employees, vendors, accounts, departments
+- Edges: transactions, approvals, reimbursements
+- Attributes: amount, time, frequency, category
+
+The GNN produces **risk signals**, not decisions.
+
+Example output:
+```json
+{
+  "risk_level": "LOW | MEDIUM | HIGH",
+  "risk_score": 0.0 - 1.0,
+  "risk_reasons": ["new_vendor", "amount_spike"]
+}
