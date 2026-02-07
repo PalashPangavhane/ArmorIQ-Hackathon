@@ -1,0 +1,103 @@
+# Policy Configuration
+# Defines the rules for payment approval and risk management
+
+policies:
+  # Basic approval policies
+  - policy_id: pol_basic_approval
+    name: Basic Approval Limit
+    description: Automatically approve low-value payments
+    conditions:
+      max_amount: 1000
+      intent_type: approve_payment
+    effect: allow
+    priority: 1
+
+  - policy_id: pol_standard_approval
+    name: Standard Approval
+    description: Standard approval for medium-value payments
+    conditions:
+      min_amount: 1000
+      max_amount: 10000
+      intent_type: approve_payment
+    effect: allow
+    constraints:
+      enhanced_logging: true
+    priority: 2
+
+  - policy_id: pol_dual_approval
+    name: Dual Approval Required
+    description: Require dual approval for high-value payments
+    conditions:
+      min_amount: 10000
+      max_amount: 50000
+      intent_type: approve_payment
+    effect: require_constraint
+    constraints:
+      dual_approval: true
+    priority: 3
+
+  - policy_id: pol_executive_approval
+    name: Executive Approval Required
+    description: Require executive approval for very high-value payments
+    conditions:
+      min_amount: 50000
+      intent_type: approve_payment
+    effect: escalate
+    constraints:
+      escalate_to: ceo_agent
+    priority: 4
+
+  # Fraud prevention policies
+  - policy_id: pol_suspicious_block
+    name: Block Suspicious Transactions
+    description: Block transactions flagged as suspicious
+    conditions:
+      intent_type: flag_suspicious
+      severity: high
+    effect: deny
+    priority: 5
+
+  - policy_id: pol_new_vendor_review
+    name: New Vendor Review
+    description: Additional review for new vendor transactions
+    conditions:
+      vendor_status: new
+    effect: require_constraint
+    constraints:
+      vendor_verification: true
+      manager_notification: true
+    priority: 3
+
+# Risk-based policy modifiers
+risk_modifiers:
+  high_risk:
+    additional_constraints:
+      requires_human_approval: true
+      execution_delay: 300
+      enhanced_audit: true
+  
+  medium_risk:
+    additional_constraints:
+      notification_required: true
+      enhanced_logging: true
+  
+  low_risk:
+    additional_constraints: {}
+
+# Approval hierarchy
+approval_hierarchy:
+  - level: 1
+    role: finance_agent
+    max_amount: 5000
+  
+  - level: 2
+    role: manager
+    max_amount: 25000
+  
+  - level: 3
+    role: ceo_agent
+    max_amount: 50000
+  
+  - level: 4
+    role: human_ceo
+    max_amount: unlimited
