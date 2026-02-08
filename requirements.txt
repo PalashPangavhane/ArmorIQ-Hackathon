@@ -18,6 +18,11 @@ networkx>=3.2.1
 numpy>=1.26.2
 scikit-learn>=1.3.2
 
+# GPU Acceleration (NVIDIA CUDA)
+# Install PyTorch with CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121
+# faiss-gpu>=1.7.4  # Requires separate install: pip install faiss-gpu
+# cupy-cuda12x>=12.0.0  # For CuPy operations: pip install cupy-cuda12x
+
 # Database
 sqlalchemy>=2.0.23
 asyncpg>=0.29.0

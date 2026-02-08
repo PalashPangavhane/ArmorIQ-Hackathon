@@ -38,6 +38,15 @@ from datetime import datetime
 from .graph_builder import TransactionGraphBuilder, NodeType, EdgeType, create_sample_graph
 from .risk_model import FraudRiskModel, RiskSignal, RiskLevel
 
+# Try to import GPU-accelerated model
+try:
+    from ..gpu.cuda_gnn import CUDAGNNRiskModel
+    from ..gpu.device_manager import get_device_info
+    GPU_AVAILABLE = True
+except ImportError:
+    GPU_AVAILABLE = False
+    CUDAGNNRiskModel = None
+
 
 class RiskAssessmentService:
     """
@@ -51,14 +60,32 @@ class RiskAssessmentService:
     
     CRITICAL: This service is READ-ONLY. It produces signals
     but cannot block or approve transactions directly.
+    
+    GPU ACCELERATION:
+    When NVIDIA CUDA is available, uses GPU-accelerated GNN for
+    faster inference on large transaction batches.
     """
     
     def __init__(
         self,
         graph_builder: Optional[TransactionGraphBuilder] = None,
-        risk_model: Optional[FraudRiskModel] = None
+        risk_model: Optional[FraudRiskModel] = None,
+        use_gpu: bool = True
     ):
         self.graph_builder = graph_builder or TransactionGraphBuilder()
+        
+        # Try GPU model first if requested
+        self._gpu_model = None
+        if use_gpu and GPU_AVAILABLE:
+            try:
+                self._gpu_model = CUDAGNNRiskModel()
+                self._gpu_model.initialize()
+                print("🚀 Risk service using GPU-accelerated model")
+            except Exception as e:
+                print(f"⚠️ GPU model failed, using CPU: {e}")
+                self._gpu_model = None
+        
+        # Fallback to heuristic model
         self.risk_model = risk_model or FraudRiskModel()
         
         # Assessment history for audit trail
@@ -88,11 +115,28 @@ class RiskAssessmentService:
         # Get graph context for the entities involved
         graph_context = self._get_graph_context(normalized)
         
-        # Run risk prediction
-        risk_signal = self.risk_model.predict_risk(
-            transaction_data=normalized,
-            graph_context=graph_context
-        )
+        # Use GPU model if available
+        if self._gpu_model is not None:
+            try:
+                gpu_result = self._gpu_model.predict_risk(normalized, graph_context)
+                risk_signal = RiskSignal(
+                    risk_level=RiskLevel(gpu_result["risk_level"]),
+                    risk_score=gpu_result["risk_score"],
+                    risk_reasons=gpu_result.get("risk_reasons", []),
+                    risk_factors=gpu_result.get("risk_factors", {})
+                )
+            except Exception as e:
+                print(f"⚠️ GPU prediction failed, falling back to CPU: {e}")
+                risk_signal = self.risk_model.predict_risk(
+                    transaction_data=normalized,
+                    graph_context=graph_context
+                )
+        else:
+            # Run risk prediction with CPU model
+            risk_signal = self.risk_model.predict_risk(
+                transaction_data=normalized,
+                graph_context=graph_context
+            )
         
         # Update the transaction graph
         self.graph_builder.update_from_transaction(normalized)
@@ -181,16 +225,67 @@ class RiskAssessmentService:
         """
         Assess risk for a batch of transactions.
         
+        GPU ACCELERATION: When available, processes entire batch
+        in parallel on GPU for significant speedup.
+        
         Returns list of transactions with their risk signals.
         """
+        # Use GPU batch processing if available
+        if self._gpu_model is not None:
+            try:
+                normalized_txns = [self._normalize_transaction(tx) for tx in transactions]
+                gpu_results = self._gpu_model.predict_batch(normalized_txns)
+                
+                results = []
+                for tx, gpu_result in zip(transactions, gpu_results):
+                    risk_signal = RiskSignal(
+                        risk_level=RiskLevel(gpu_result["risk_level"]),
+                        risk_score=gpu_result["risk_score"],
+                        risk_reasons=gpu_result.get("risk_reasons", []),
+                        risk_factors=gpu_result.get("risk_factors", {})
+                    )
+                    
+                    # Update graph and record
+                    normalized = self._normalize_transaction(tx)
+                    self.graph_builder.update_from_transaction(normalized)
+                    self._record_assessment(normalized, risk_signal)
+                    
+                    results.append({
+                        "transaction": tx,
+                        "risk_signal": risk_signal.to_dict(),
+                        "inference_mode": gpu_result.get("inference_mode", "gpu")
+                    })
+                return results
+            except Exception as e:
+                print(f"⚠️ GPU batch processing failed: {e}")
+                # Fall through to sequential processing
+        
+        # Sequential CPU processing
         results = []
         for tx in transactions:
             signal = self.assess_transaction_risk(tx)
             results.append({
                 "transaction": tx,
-                "risk_signal": signal.to_dict()
+                "risk_signal": signal.to_dict(),
+                "inference_mode": "cpu"
             })
         return results
+    
+    def get_device_info(self) -> Dict[str, Any]:
+        """Get GPU/device information for the risk service."""
+        info = {
+            "gpu_model_active": self._gpu_model is not None,
+            "gpu_available": GPU_AVAILABLE
+        }
+        
+        if GPU_AVAILABLE and self._gpu_model:
+            info["gpu_details"] = self._gpu_model.get_device_info()
+            try:
+                info["system_gpu"] = get_device_info()
+            except:
+                pass
+        
+        return info
     
     def get_high_risk_transactions(
         self,
